@@ -1,9 +1,71 @@
-const router = require('express').Router();
-const { Student, Faculty, Admin, Complaint } = require('../Models/PortModel');
-const createError = require('../utils/appError');
-require('dotenv').config();
+const express = require("express");
+const nodemailer = require("nodemailer");
+const { Student, Faculty, Admin, Complaint, Otp } = require("../Models/PortModel");
+const createError = require("../utils/appError");
+require("dotenv").config();
 
-// Generic Signup Route
+const router = express.Router();
+
+// Nodemailer transporter config
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
+
+// ================= OTP Routes ===================
+
+// ✅ Send OTP
+router.post("/otp/send", async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+      }
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+
+    try {
+        await Otp.create({
+            email,
+            otp: otpCode,
+            expiresAt: new Date(Date.now() + 5 * 60000),
+        });
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Your OTP Code",
+            text: `Your OTP is ${otpCode}. It expires in 5 minutes.`,
+        });
+
+        res.json({ success: true, message: "OTP sent successfully!" });
+    } catch (error) {
+        console.error("OTP Send Error:", error); // Add this line
+        res.status(500).json({ success: false, message: "Error sending OTP", error });
+    }
+});
+
+// ✅ Verify OTP
+router.post("/otp/verify", async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const validOtp = await Otp.findOne({ email, otp, expiresAt: { $gt: new Date() } });
+
+        if (validOtp) {
+            await Otp.deleteMany({ email });
+            res.json({ success: true, message: "OTP verified successfully!" });
+        } else {
+            res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error verifying OTP", error });
+    }
+});
+
+// ================= Signup/Login Routes ===================
+
 const signupUser = async (Model, role, req, res, next) => {
     try {
         const user = await Model.findOne({ email: req.body.email });
@@ -12,28 +74,27 @@ const signupUser = async (Model, role, req, res, next) => {
         }
         const newUser = await Model.create(req.body);
         res.status(201).json({
-            status: 'success',
+            status: "success",
             message: `${role} Registered successfully`,
-            user: newUser
+            user: newUser,
         });
     } catch (error) {
         next(error);
     }
 };
 
-// Generic Login Route
 const loginUser = async (Model, role, req, res, next) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return next(createError(400, 'Email and password are required'));
+            return next(createError(400, "Email and password are required"));
         }
         const user = await Model.findOne({ email, password });
-        if (!user) return next(createError(401, 'Invalid credentials'));
+        if (!user) return next(createError(401, "Invalid credentials"));
         res.status(200).json({
-            status: 'success',
+            status: "success",
             message: `${role} logged in successfully`,
-            user
+            user,
         });
     } catch (error) {
         next(error);
@@ -41,31 +102,32 @@ const loginUser = async (Model, role, req, res, next) => {
 };
 
 // Signup Routes
-router.post('/signup/student', (req, res, next) => signupUser(Student, 'Student', req, res, next));
-router.post('/signup/faculty', (req, res, next) => signupUser(Faculty, 'Faculty', req, res, next));
-router.post('/signup/admin', (req, res, next) => signupUser(Admin, 'Admin', req, res, next));
+router.post("/signup/student", (req, res, next) => signupUser(Student, "Student", req, res, next));
+router.post("/signup/faculty", (req, res, next) => signupUser(Faculty, "Faculty", req, res, next));
+router.post("/signup/admin", (req, res, next) => signupUser(Admin, "Admin", req, res, next));
 
 // Login Routes
-router.post('/login/student', (req, res, next) => loginUser(Student, 'Student', req, res, next));
-router.post('/login/faculty', (req, res, next) => loginUser(Faculty, 'Faculty', req, res, next));
-router.post('/login/admin', (req, res, next) => loginUser(Admin, 'Admin', req, res, next));
+router.post("/login/student", (req, res, next) => loginUser(Student, "Student", req, res, next));
+router.post("/login/faculty", (req, res, next) => loginUser(Faculty, "Faculty", req, res, next));
+router.post("/login/admin", (req, res, next) => loginUser(Admin, "Admin", req, res, next));
 
-// Complaint Routes
-router.post('/add-complaint', async (req, res, next) => {
+// ================= Complaint Routes ===================
+
+router.post("/add-complaint", async (req, res, next) => {
     try {
         const complaint = new Complaint(req.body);
         await complaint.save();
         res.status(201).json({
-            status: 'success',
-            message: 'Complaint registered successfully',
-            complaint
+            status: "success",
+            message: "Complaint registered successfully",
+            complaint,
         });
     } catch (error) {
         next(error);
     }
 });
 
-router.get('/get-complaints', async (req, res, next) => {
+router.get("/get-complaints", async (req, res, next) => {
     try {
         const complaints = await Complaint.find();
         res.status(200).json({ complaints });
@@ -74,7 +136,7 @@ router.get('/get-complaints', async (req, res, next) => {
     }
 });
 
-router.post('/update-complaint', async (req, res, next) => {
+router.post("/update-complaint", async (req, res, next) => {
     try {
         const updatedComplaint = await Complaint.findOneAndUpdate(
             { _id: req.body.id },
@@ -82,18 +144,18 @@ router.post('/update-complaint', async (req, res, next) => {
             { new: true }
         );
         res.status(200).json({
-            status: 'success',
-            message: 'Complaint updated successfully',
-            updatedComplaint
+            status: "success",
+            message: "Complaint updated successfully",
+            updatedComplaint,
         });
     } catch (error) {
         next(error);
     }
 });
 
-router.post('/delete-complaint', async (req, res, next) => {
+router.post("/delete-complaint", async (req, res, next) => {
     try {
-        const { id } = req.body; // Extract complaint ID
+        const { id } = req.body;
 
         if (!id) {
             return next(createError(400, "Complaint ID is required"));
@@ -108,7 +170,7 @@ router.post('/delete-complaint', async (req, res, next) => {
         res.status(200).json({
             status: "success",
             message: "Complaint deleted successfully",
-            deletedComplaint
+            deletedComplaint,
         });
     } catch (error) {
         next(error);
