@@ -18,18 +18,58 @@ const transporter = nodemailer.createTransport({
 // ================= OTP Routes ===================
 
 // ✅ Send OTP
+// router.post("/otp/send", async (req, res) => {
+//     const { email } = req.body;
+//     if (!email) {
+//         return res.status(400).json({ success: false, message: "Email is required" });
+//       }
+//     const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+
+//     try {
+//         await Otp.create({
+//             email,
+//             otp: otpCode,
+//             expiresAt: new Date(Date.now() + 5 * 60000),
+//         });
+
+//         await transporter.sendMail({
+//             from: process.env.EMAIL_USER,
+//             to: email,
+//             subject: "Your OTP Code",
+//             text: `Your OTP is ${otpCode}. It expires in 5 minutes.`,
+//         });
+
+//         res.json({ success: true, message: "OTP sent successfully!" });
+//     } catch (error) {
+//         console.error("OTP Send Error:", error); // Add this line
+//         res.status(500).json({ success: false, message: "Error sending OTP", error });
+//     }
+// });
+
+// ✅ Verify OTP
 router.post("/otp/send", async (req, res) => {
     const { email } = req.body;
+
     if (!email) {
         return res.status(400).json({ success: false, message: "Email is required" });
-      }
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    }
 
     try {
+        // Check if email exists in any user collection
+        const student = await Student.findOne({ studentEmail: email });
+        const faculty = await Faculty.findOne({ facultyEmail: email });
+        const admin = await Admin.findOne({ adminEmail: email });
+
+        if (!student && !faculty && !admin) {
+            return res.status(404).json({ success: false, message: "Email is not registered" });
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+
         await Otp.create({
             email,
             otp: otpCode,
-            expiresAt: new Date(Date.now() + 5 * 60000),
+            expiresAt: new Date(Date.now() + 5 * 60000), // 5 minutes
         });
 
         await transporter.sendMail({
@@ -41,12 +81,12 @@ router.post("/otp/send", async (req, res) => {
 
         res.json({ success: true, message: "OTP sent successfully!" });
     } catch (error) {
-        console.error("OTP Send Error:", error); // Add this line
+        console.error("OTP Send Error:", error);
         res.status(500).json({ success: false, message: "Error sending OTP", error });
     }
 });
 
-// ✅ Verify OTP
+//verify OTP
 router.post("/otp/verify", async (req, res) => {
     const { email, otp } = req.body;
 
@@ -63,6 +103,48 @@ router.post("/otp/verify", async (req, res) => {
         res.status(500).json({ success: false, message: "Error verifying OTP", error });
     }
 });
+
+// ✅ Reset Password After OTP Verification
+router.post("/otp/reset-password", async (req, res) => {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+        return res.status(400).json({ success: false, message: "Email and new password are required" });
+    }
+
+    try {
+        // Check which collection the user exists in
+        const student = await Student.findOne({ studentEmail: email });
+        const faculty = await Faculty.findOne({ facultyEmail: email });
+        const admin = await Admin.findOne({ adminEmail: email });
+
+        let updatedUser = null;
+
+        if (student) {
+            student.studentPassword = newPassword;
+            updatedUser = await student.save();
+        } else if (faculty) {
+            faculty.facultyPassword = newPassword;
+            updatedUser = await faculty.save();
+        } else if (admin) {
+            admin.adminPassword = newPassword;
+            updatedUser = await admin.save();
+        }
+        
+        // Optionally clear OTPs after reset
+        await Otp.deleteMany({ email });
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+            user: updatedUser,
+        });
+    } catch (error) {
+        console.error("Reset Password Error:", error);
+        res.status(500).json({ success: false, message: "Error resetting password", error });
+    }
+});
+
 
 // ================= Signup/Login Routes ===================
 
