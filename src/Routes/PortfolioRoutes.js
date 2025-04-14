@@ -105,6 +105,7 @@ router.post("/otp/verify", async (req, res) => {
 });
 
 // ✅ Reset Password After OTP Verification
+// ✅ Reset Password After OTP Verification
 router.post("/otp/reset-password", async (req, res) => {
     const { email, newPassword } = req.body;
 
@@ -113,31 +114,33 @@ router.post("/otp/reset-password", async (req, res) => {
     }
 
     try {
-        // Check which collection the user exists in
+        let role = null;
+        let updatedUser = null;
+
         const student = await Student.findOne({ studentEmail: email });
         const faculty = await Faculty.findOne({ facultyEmail: email });
         const admin = await Admin.findOne({ adminEmail: email });
 
-        let updatedUser = null;
-
         if (student) {
             student.studentPassword = newPassword;
             updatedUser = await student.save();
+            role = "student";
         } else if (faculty) {
             faculty.facultyPassword = newPassword;
             updatedUser = await faculty.save();
+            role = "faculty";
         } else if (admin) {
             admin.adminPassword = newPassword;
             updatedUser = await admin.save();
+            role = "admin";
         }
-        
-        // Optionally clear OTPs after reset
+
         await Otp.deleteMany({ email });
 
         res.status(200).json({
             success: true,
             message: "Password reset successfully",
-            user: updatedUser,
+            role,
         });
     } catch (error) {
         console.error("Reset Password Error:", error);
@@ -159,6 +162,7 @@ const signupUser = async (Model, role, req, res, next) => {
             status: "success",
             message: `${role} Registered successfully`,
             user: newUser,
+           
         });
     } catch (error) {
         next(error);
