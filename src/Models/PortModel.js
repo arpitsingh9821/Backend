@@ -32,7 +32,8 @@ const adminSchema = new mongoose.Schema({
 
 // Complaint Schema
 const complaintSchema = new mongoose.Schema({
-    complaintId: { type: String, unique: true }, // Auto-generated ID
+    complaintId: { type: String, unique: true },
+    ComplaintStatus: { type: String, default: "Pending" },
     studentId: { type: String, required: true },
     studentName: { type: String, required: true },
     desc: { type: String, required: true },
