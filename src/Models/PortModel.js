@@ -6,31 +6,79 @@ const otpSchema = new mongoose.Schema({
     expiresAt: { type: Date, required: true },
 });
 
-// Student Schema
+// ================= Student Schema =================
 const studentSchema = new mongoose.Schema({
-    studentId: { type: String, required: true },
+    studentId: { type: String, unique: true },
     studentName: { type: String, required: true },
-    studentEmail: { type: String, required: true },
+    studentEmail: { type: String, required: true, unique: true },
     studentPassword: { type: String, required: true },
 });
 
-// Faculty Schema
+// Auto-generate studentId like STUD001
+studentSchema.pre("save", async function (next) {
+    if (!this.studentId) {
+        const lastStudent = await Student.findOne().sort({ studentId: -1 });
+        let nextId = "STUD001";
+
+        if (lastStudent && lastStudent.studentId) {
+            const lastNumber = parseInt(lastStudent.studentId.replace("STUD", ""), 10);
+            nextId = `STUD${String(lastNumber + 1).padStart(3, "0")}`;
+        }
+
+        this.studentId = nextId;
+    }
+    next();
+});
+
+// ================= Faculty Schema =================
 const facultySchema = new mongoose.Schema({
-    facultyId: { type: String, required: true },
+    facultyId: { type: String, unique: true },
     facultyName: { type: String, required: true },
     facultyEmail: { type: String, required: true },
     facultyPassword: { type: String, required: true },
 });
 
-// Admin Schema
+// Auto-generate facultyId like FACL001
+facultySchema.pre("save", async function (next) {
+    if (!this.facultyId) {
+        const lastFaculty = await Faculty.findOne().sort({ facultyId: -1 });
+        let nextId = "FACL001";
+
+        if (lastFaculty && lastFaculty.facultyId) {
+            const lastNumber = parseInt(lastFaculty.facultyId.replace("FACL", ""), 10);
+            nextId = `FACL${String(lastNumber + 1).padStart(3, "0")}`;
+        }
+
+        this.facultyId = nextId;
+    }
+    next();
+});
+
+// ================= Admin Schema =================
 const adminSchema = new mongoose.Schema({
-    adminId: { type: String, required: true },
+    adminId: { type: String, unique: true },
     adminName: { type: String, required: true },
     adminEmail: { type: String, required: true },
     adminPassword: { type: String, required: true },
 });
 
-// Complaint Schema
+// Auto-generate adminId like ADMN001
+adminSchema.pre("save", async function (next) {
+    if (!this.adminId) {
+        const lastAdmin = await Admin.findOne().sort({ adminId: -1 });
+        let nextId = "ADMN001";
+
+        if (lastAdmin && lastAdmin.adminId) {
+            const lastNumber = parseInt(lastAdmin.adminId.replace("ADMN", ""), 10);
+            nextId = `ADMN${String(lastNumber + 1).padStart(3, "0")}`;
+        }
+
+        this.adminId = nextId;
+    }
+    next();
+});
+
+// ================= Complaint Schema =================
 const complaintSchema = new mongoose.Schema({
     complaintId: { type: String, unique: true },
     ComplaintStatus: { type: String, default: "Pending" },
@@ -39,7 +87,7 @@ const complaintSchema = new mongoose.Schema({
     desc: { type: String, required: true },
 });
 
-// Auto-generate `complaintId` in "COMP001", "COMP002" format
+// Auto-generate complaintId like COMP001
 complaintSchema.pre("save", async function (next) {
     if (!this.complaintId) {
         const lastComplaint = await Complaint.findOne().sort({ complaintId: -1 });
@@ -55,12 +103,16 @@ complaintSchema.pre("save", async function (next) {
     next();
 });
 
+// Create models
+const Student = mongoose.model("Student", studentSchema);
+const Faculty = mongoose.model("Faculty", facultySchema);
+const Admin = mongoose.model("Admin", adminSchema);
 const Complaint = mongoose.model("Complaint", complaintSchema);
 
 module.exports = {
-    Otp : mongoose.model("OTP", otpSchema),
-    Student: mongoose.model("Student", studentSchema),
-    Faculty: mongoose.model("Faculty", facultySchema),
-    Admin: mongoose.model("Admin", adminSchema),
+    Otp: mongoose.model("OTP", otpSchema),
+    Student,
+    Faculty,
+    Admin,
     Complaint,
 };

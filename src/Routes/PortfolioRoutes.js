@@ -171,12 +171,12 @@ const signupUser = async (Model, role, req, res, next) => {
 
 const loginUser = async (Model, role, req, res, next) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return next(createError(400, "Email and password are required"));
+        const { studentEmail, studentPassword } = req.body;
+        if (!studentEmail || !studentPassword) {
+            return next(new createError(400, "Email and password are required"));
         }
-        const user = await Model.findOne({ email, password });
-        if (!user) return next(createError(401, "Invalid credentials"));
+        const user = await Model.findOne({ studentEmail, studentPassword });
+        if (!user) return next(new createError(401, "Invalid credentials"));
         res.status(200).json({
             status: "success",
             message: `${role} logged in successfully`,
