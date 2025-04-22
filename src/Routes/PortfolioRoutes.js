@@ -153,7 +153,7 @@ router.post("/otp/reset-password", async (req, res) => {
 
 const signupUser = async (Model, role, req, res, next) => {
     try {
-        const user = await Model.findOne({ email: req.body.email });
+        const user = await Model.findOne({ studentEmail: req.body.email });
         if (user) {
             return next(createError(400, `${role} already exists`));
         }
