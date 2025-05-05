@@ -7,15 +7,20 @@ const portfolioRoutes = require("./src/Routes/PortfolioRoutes");
 dotenv.config();
 const app = express();
 
+// Parse JSON bodies
 app.use(express.json());
-app.use(cors());
+
+// Fix CORS error when using credentials
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 
 // ✅ Connect to the database
 connectDB();
 
 // Routes
 app.use("/api", portfolioRoutes);
-
 
 // Start the server
 const PORT = process.env.PORT || 5000;
