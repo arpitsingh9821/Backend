@@ -171,9 +171,9 @@ const signupUser = async (Model, role, req, res, next) => {
 
 const loginUser = async (Model, role, req, res, next) => {
     try {
-        const { Email, password } = req.body;
+        const { email, password } = req.body;
 
-        if (!Email || !password) {
+        if (!email || !password) {
             return next(createError(400, "Email and password are required"));
         }
 
@@ -183,7 +183,7 @@ const loginUser = async (Model, role, req, res, next) => {
 
         // Construct dynamic query
         const query = {};
-        query[emailField] = Email;
+        query[emailField] = email;
         query[passwordField] = password;
 
         const user = await Model.findOne(query);
