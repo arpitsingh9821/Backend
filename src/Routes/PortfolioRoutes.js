@@ -171,12 +171,25 @@ const signupUser = async (Model, role, req, res, next) => {
 
 const loginUser = async (Model, role, req, res, next) => {
     try {
-        const { studentEmail, studentPassword } = req.body;
-        if (!studentEmail || !studentPassword) {
-            return next(new createError(400, "Email and password are required"));
+        const { studentEmail, studentpassword } = req.body;
+
+        if (!studentEmail || !studentpassword) {
+            return next(createError(400, "Email and password are required"));
         }
-        const user = await Model.findOne({ studentEmail, studentPassword });
-        if (!user) return next(new createError(401, "Invalid credentials"));
+
+        // Determine field names dynamically
+        const emailField = role.toLowerCase() + "Email";
+        const passwordField = role.toLowerCase() + "Password";
+
+        // Construct dynamic query
+        const query = {};
+        query[emailField] = studentEmail;
+        query[passwordField] = studentpassword;
+
+        const user = await Model.findOne(query);
+
+        if (!user) return next(createError(401, "Invalid credentials"));
+
         res.status(200).json({
             status: "success",
             message: `${role} logged in successfully`,
@@ -186,6 +199,7 @@ const loginUser = async (Model, role, req, res, next) => {
         next(error);
     }
 };
+
 
 // Signup Routes
 router.post("/signup/student", (req, res, next) => signupUser(Student, "Student", req, res, next));
