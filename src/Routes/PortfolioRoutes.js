@@ -171,9 +171,9 @@ const signupUser = async (Model, role, req, res, next) => {
 
 const loginUser = async (Model, role, req, res, next) => {
     try {
-        const { studentEmail, studentpassword } = req.body;
+        const { Email, password } = req.body;
 
-        if (!studentEmail || !studentpassword) {
+        if (!Email || !password) {
             return next(createError(400, "Email and password are required"));
         }
 
@@ -183,8 +183,8 @@ const loginUser = async (Model, role, req, res, next) => {
 
         // Construct dynamic query
         const query = {};
-        query[emailField] = studentEmail;
-        query[passwordField] = studentpassword;
+        query[emailField] = Email;
+        query[passwordField] = password;
 
         const user = await Model.findOne(query);
 
@@ -278,3 +278,4 @@ router.post("/delete-complaint", async (req, res, next) => {
 });
 
 module.exports = router;
+

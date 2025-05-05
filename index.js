@@ -11,11 +11,16 @@ const app = express();
 app.use(express.json());
 
 // Fix CORS error when using credentials
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
-
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://arpit-assign.vercel.app", // your deployed frontend URL
+  ];
+  
+  app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+  }));
+  
 // ✅ Connect to the database
 connectDB();
 
