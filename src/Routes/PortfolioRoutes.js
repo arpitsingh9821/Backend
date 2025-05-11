@@ -7,7 +7,7 @@ const {
     Feedback,
     Otp
 } = require("../Models/PortModel");
-const createError = require("../Utils/appError");
+const createError = require("../utils/appError");
 const session = require('express-session');
 require("dotenv").config();
 
