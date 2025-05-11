@@ -11,8 +11,10 @@ const app = express();
 
 // ✅ Use cors before session and routes
 app.use(cors({
-    origin: 'https://ascms.netlify.app',
-    credentials: true
+  origin: 'https://ascms.netlify.app', // Your Netlify frontend URL
+  credentials: true, // If you use cookies or authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
 }));
 
 // ✅ Parse incoming requests
