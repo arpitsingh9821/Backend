@@ -8,83 +8,35 @@ const otpSchema = new mongoose.Schema({
 
 // ================= Student Schema =================
 const studentSchema = new mongoose.Schema({
-    studentId: { type: String, unique: true },
+    studentId: { type: Number, unique: true, required: true },
     studentName: { type: String, required: true },
     studentEmail: { type: String, required: true, unique: true },
     studentPassword: { type: String, required: true },
 });
 
-// Auto-generate studentId like STUD001
-studentSchema.pre("save", async function (next) {
-    if (!this.studentId) {
-        const lastStudent = await Student.findOne().sort({ studentId: -1 });
-        let nextId = "STUD001";
-
-        if (lastStudent && lastStudent.studentId) {
-            const lastNumber = parseInt(lastStudent.studentId.replace("STUD", ""), 10);
-            nextId = `STUD${String(lastNumber + 1).padStart(3, "0")}`;
-        }
-
-        this.studentId = nextId;
-    }
-    next();
-});
-
-// ================= Faculty Schema =================
-const facultySchema = new mongoose.Schema({
-    facultyId: { type: String, unique: true },
-    facultyName: { type: String, required: true },
-    facultyEmail: { type: String, required: true },
-    facultyPassword: { type: String, required: true },
-});
-
-// Auto-generate facultyId like FACL001
-facultySchema.pre("save", async function (next) {
-    if (!this.facultyId) {
-        const lastFaculty = await Faculty.findOne().sort({ facultyId: -1 });
-        let nextId = "FACL001";
-
-        if (lastFaculty && lastFaculty.facultyId) {
-            const lastNumber = parseInt(lastFaculty.facultyId.replace("FACL", ""), 10);
-            nextId = `FACL${String(lastNumber + 1).padStart(3, "0")}`;
-        }
-
-        this.facultyId = nextId;
-    }
-    next();
-});
-
 // ================= Admin Schema =================
 const adminSchema = new mongoose.Schema({
-    adminId: { type: String, unique: true },
-    adminName: { type: String, required: true },
+    adminId: { type: Number, required: true },
     adminEmail: { type: String, required: true },
     adminPassword: { type: String, required: true },
-});
-
-// Auto-generate adminId like ADMN001
-adminSchema.pre("save", async function (next) {
-    if (!this.adminId) {
-        const lastAdmin = await Admin.findOne().sort({ adminId: -1 });
-        let nextId = "ADMN001";
-
-        if (lastAdmin && lastAdmin.adminId) {
-            const lastNumber = parseInt(lastAdmin.adminId.replace("ADMN", ""), 10);
-            nextId = `ADMN${String(lastNumber + 1).padStart(3, "0")}`;
-        }
-
-        this.adminId = nextId;
-    }
-    next();
 });
 
 // ================= Complaint Schema =================
 const complaintSchema = new mongoose.Schema({
     complaintId: { type: String, unique: true },
-    ComplaintStatus: { type: String, default: "Pending" },
-    studentId: { type: String, required: true },
     studentName: { type: String, required: true },
-    desc: { type: String, required: true },
+    studentId: { type: String, required: true },
+    studentEmail: { type: String, required: true },
+    complaintType: { type: String, required: true },
+    complaintDesc: { type: String, required: true },
+    incidentDate: { type: Date, required: true },
+    status: { type: String, default: 'Pending' },
+    createdAt: { type: Date, default: Date.now },
+    category: { type: String, enum: ["Academic", "Administrative", "Facility", "Other"], default: "Other" },
+    assignedTo: { type: String, default: null },          // faculty email
+    assignedFacultyName: { type: String, default: null }, // faculty name
+    assignmentStatus: { type: String, default: null },    // e.g. "Assigned"
+    assignedAt: { type: Date, default: null }
 });
 
 // Auto-generate complaintId like COMP001
@@ -103,16 +55,30 @@ complaintSchema.pre("save", async function (next) {
     next();
 });
 
+// ================= Feedback Schema =================
+const feedbackSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    complaintId: { type: String, required: true },
+    rating: { type: Number, required: true },
+    comments: { type: String },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Indexes for feedback
+feedbackSchema.index({ 'ratings.overall': 1 });
+feedbackSchema.index({ submissionDate: -1 });
+
 // Create models
 const Student = mongoose.model("Student", studentSchema);
-const Faculty = mongoose.model("Faculty", facultySchema);
 const Admin = mongoose.model("Admin", adminSchema);
 const Complaint = mongoose.model("Complaint", complaintSchema);
+const Feedback = mongoose.model("Feedback", feedbackSchema);
 
 module.exports = {
     Otp: mongoose.model("OTP", otpSchema),
     Student,
-    Faculty,
     Admin,
     Complaint,
+    Feedback
 };
